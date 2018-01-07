@@ -1,4 +1,4 @@
-package cn.isc.im.nio.test;
+package cn.isc.im.nio.socket.helloworld;
 
 public interface Config {
 

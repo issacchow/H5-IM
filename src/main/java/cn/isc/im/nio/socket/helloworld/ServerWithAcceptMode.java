@@ -1,26 +1,25 @@
-package cn.isc.im.nio.test;
-
-import cn.isc.util.ConsoleUtil;
+package cn.isc.im.nio.socket.helloworld;
 
 import static cn.isc.util.ConsoleUtil.*;
 
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.*;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
-import java.util.Set;
+import java.nio.charset.CharsetEncoder;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 
-public class SocketServerTester {
-    Charset utf8 = Charset.forName("utf-8");
+public class ServerWithAcceptMode {
+    Charset utf8 = Charset.forName("UTF-8");
 
-    public SocketServerTester() {
+    public ServerWithAcceptMode() {
 
 
     }
@@ -61,10 +60,12 @@ public class SocketServerTester {
         SocketChannel socketChannel = null;
         ByteBuffer buffer = null;
         StringBuilder readContent = null;
+        Boolean enable = true;
+
 
         public OnConnection(SocketChannel socketChannel) {
             this.socketChannel = socketChannel;
-            this.buffer = ByteBuffer.allocate(4);
+            this.buffer = ByteBuffer.allocate(1024);
             readContent = new StringBuilder(1024);
         }
 
@@ -73,8 +74,22 @@ public class SocketServerTester {
         public void run() {
 
             CharsetDecoder decoder = utf8.newDecoder();
+            CharsetEncoder encoder = utf8.newEncoder();
 
-            while (true) {
+
+            String welcome = "Welcome to Connect Server Socket";
+            CharBuffer charBuffer = CharBuffer.wrap(welcome.toCharArray());
+            buffer.clear();
+            //buffer.put(welcome.getBytes());
+            try {
+                this.socketChannel.write(encoder.encode(charBuffer));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+
+            while (enable) {
                 try {
                     log("Channel[%s]: wait for read", this.socketChannel.getRemoteAddress());
                 } catch (IOException e) {
@@ -84,22 +99,34 @@ public class SocketServerTester {
                     int readBytes = this.socketChannel.read(buffer);
                     if (readBytes > 0) {
                         log("Channel[%s]:has read bytes %s", this.socketChannel.getRemoteAddress(), readBytes);
+                        buffer.flip();
+                        String s = buffer.asCharBuffer().toString();
+                        readContent.append(s);
+                        buffer.clear();
 
-                        readContent.append(utf8.decode(buffer).toString());
+                        continue;
+                    }
 
-                    } else {
+                    if(readBytes==0){
                         log("Channel[%s]:read complete,bytes: %s", this.socketChannel.getRemoteAddress(), readBytes);
                         log("read content:%s", readContent);
                         //重置content值
                         this.readContent.delete(0, this.readContent.length());
                         buffer.clear();
-                        buffer.flip();
+                    }
+
+                    if(readBytes==-1) {
+                       log("Disconnect");
+                       enable = false;
                     }
 
                 } catch (IOException e) {
                     e.printStackTrace();
+                    enable = false;
                 }
             }
+
+            log("Finish");
         }
     }
 

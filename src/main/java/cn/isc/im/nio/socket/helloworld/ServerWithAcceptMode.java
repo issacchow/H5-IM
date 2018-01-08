@@ -10,10 +10,7 @@ import java.nio.channels.*;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 
 public class ServerWithAcceptMode {
@@ -36,7 +33,7 @@ public class ServerWithAcceptMode {
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(Config.ServerPort)).configureBlocking(isBlocking);
 
-        ArrayBlockingQueue queue = new ArrayBlockingQueue(30);
+        BlockingQueue queue = new ArrayBlockingQueue(30);
         ExecutorService executor = new ThreadPoolExecutor(3, 3, 1, TimeUnit.DAYS, queue);
 
 
@@ -123,6 +120,7 @@ public class ServerWithAcceptMode {
                 } catch (IOException e) {
                     e.printStackTrace();
                     enable = false;
+
                 }
             }
 

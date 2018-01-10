@@ -8,9 +8,17 @@ import java.io.IOException;
 public class Main {
 
 
+    public static void main(String ...args){
+        Main main = new Main();
+        try {
+            main.client();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
-    public void server() throws Exception {
+    public  void server() throws Exception {
         ServerWithAcceptMode helloWorldNIO = new ServerWithAcceptMode();
         helloWorldNIO.acceptByBlocking();
     }
@@ -22,7 +30,7 @@ public class Main {
     }
 
     @Test
-    public void client() throws Exception {
+    public  void client() throws Exception {
         ClientWithSelector clientTester = new ClientWithSelector();
         clientTester.runSocketClient();
     }

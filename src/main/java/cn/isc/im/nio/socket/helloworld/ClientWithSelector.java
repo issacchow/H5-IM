@@ -1,6 +1,8 @@
 package cn.isc.im.nio.socket.helloworld;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -10,6 +12,10 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static cn.isc.util.ConsoleUtil.log;
 
@@ -28,8 +34,8 @@ public class ClientWithSelector {
         socketChannel.register(selector, SelectionKey.OP_CONNECT, age);
 
 
-//        Boolean isConnect = socketChannel.connect(new InetSocketAddress(InetAddress.getLocalHost(),Config.ServerPort));
-        Boolean isConnect = socketChannel.connect(new InetSocketAddress(InetAddress.getLocalHost(), 10087));
+        Boolean isConnect = socketChannel.connect(new InetSocketAddress(InetAddress.getLocalHost(), Config.ServerPort));
+//        Boolean isConnect = socketChannel.connect(new InetSocketAddress(InetAddress.getLocalHost(), 10087));
         if (isConnect == false) {
             //return;
         }
@@ -53,6 +59,7 @@ public class ClientWithSelector {
                     // 设置成非阻塞
                     //socketChannel.configureBlocking(false);
                     socketChannel.register(selector, SelectionKey.OP_READ);
+                    readyToSend(socketChannel);
                     it.remove();
                     continue;
                 }
@@ -75,24 +82,50 @@ public class ClientWithSelector {
 
                 int readBytes = -1;
                 StringBuilder content = new StringBuilder();
-               do {
-                   buffer.clear();
-                   readBytes = socketChannel.read(buffer);
-                   if(readBytes>0){
-                       //将buffer position重置
-                       buffer.flip();
-                       String s = decoder.decode(buffer).toString();
+                do {
+                    buffer.clear();
+                    readBytes = socketChannel.read(buffer);
+                    if (readBytes > 0) {
+                        //将buffer position重置
+                        buffer.flip();
+                        String s = decoder.decode(buffer).toString();
 
-                       content.append(s);
-                   }
-               }while (readBytes>0);
+                        content.append(s);
+                    }
+                } while (readBytes > 0);
 
-               log("read: %s",content.toString());
+                log("read: %s", content.toString());
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void readyToSend(SocketChannel socketChannel) {
+
+        BlockingQueue queue = new ArrayBlockingQueue(3);
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.DAYS, queue);
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                ByteBuffer buffer = ByteBuffer.allocate(1024);
+                while (true) {
+                    try {
+                        String s = reader.readLine();
+                        byte[] bytes = s.getBytes(utf8);
+                        buffer.clear();
+                        buffer.put(bytes);
+                        buffer.flip();
+                        socketChannel.write(buffer);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
     }
 
 }

@@ -9,7 +9,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -22,7 +21,6 @@ import static cn.isc.util.ConsoleUtil.log;
  * 选择器模式socket服务器
  */
 public class ServerWithSelectorMode {
-    private Charset utf8 = Charset.forName("UTF-8");
 
     public ServerWithSelectorMode() {
 
@@ -75,12 +73,16 @@ public class ServerWithSelectorMode {
         @Override
         public void run() {
 
-
+            log("Start to listen");
 
             while (enable) {
+                int keys = 0;
                 try {
-                    int keys = selector.select();
-                    if (keys <= 0) {
+                    keys = selector.select();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (keys <= 0) {
                         log("keys is letter than Zero");
                         continue;
                     }
@@ -94,18 +96,27 @@ public class ServerWithSelectorMode {
                         if (key.isAcceptable()) {
                             log("accept a connection");
                             ServerSocketChannel sktChannel = (ServerSocketChannel) key.channel();
-                            SocketChannel clientSkt = sktChannel.accept();
+                            SocketChannel clientSkt = null;
+                            try {
+                                clientSkt = sktChannel.accept();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                             //为个链接创建固定的缓存
                             ByteBuffer buffer = ByteBuffer.allocate(1024);
                             //使用同一条线程的selector 进行监听接收数据事件
-                            clientSkt.configureBlocking(false);
-                            clientSkt.register(selector, SelectionKey.OP_READ, buffer);
+                            try {
+                                clientSkt.configureBlocking(false);
+                                clientSkt.register(selector, SelectionKey.OP_READ, buffer);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                             continue;
                         }
 
                         if (key.isReadable()) {
                             log("on read");
-                            if(key.channel()==null){
+                            if (key.channel() == null) {
                                 key.cancel();
                                 continue;
                             }
@@ -114,30 +125,47 @@ public class ServerWithSelectorMode {
                             int readBytes = -1;
                             StringBuilder msg = new StringBuilder();
                             do {
-                                buffer.clear();
-                                readBytes = sktChannel.read(buffer);
-                                buffer.flip();
-                                String s = decoder.decode(buffer).toString();
-                                msg.append(s);
+                                try {
+                                    buffer.clear();
+                                    readBytes = sktChannel.read(buffer);
+                                    if (readBytes > 0) {
+                                        buffer.flip();
+
+                                        String s = decoder.decode(buffer).toString();
+                                        msg.append(s);
+                                    }
+                                }catch (Exception e){
+                                    break;
+                                }
 
                             } while (readBytes > 0);
-                            if(readBytes==-1){
+                            if (readBytes == -1) {
                                 log("disconnect");
                                 key.cancel();
-                                sktChannel.close();
-                            }else{
-                                log("%s read msg:%s", sktChannel.getRemoteAddress(), msg.toString());
+                                try {
+                                    sktChannel.close();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                try {
+                                    log("%s read msg:%s", sktChannel.getRemoteAddress(), msg.toString());
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
                             }
 
                             continue;
                         }
 
+                        if (key.isWritable()) {
+                            log("write");
+                            continue;
+                        }
 
                     }
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
             }
 
 

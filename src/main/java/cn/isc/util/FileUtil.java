@@ -13,7 +13,7 @@ import java.nio.charset.Charset;
  */
 public class FileUtil {
 
-    public static Charset defaultCharset = Charset.defaultCharset();
+    public static Charset defaultCharset = Charset.forName("UTF-8");
 
     static public String readFile(String filePath){
         return readFile(filePath, defaultCharset);

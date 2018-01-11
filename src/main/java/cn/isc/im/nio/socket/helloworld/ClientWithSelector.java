@@ -1,16 +1,21 @@
 package cn.isc.im.nio.socket.helloworld;
 
+import cn.isc.util.FileUtil;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -24,6 +29,7 @@ public class ClientWithSelector {
     private Object syncLocker = this;
     private Charset utf8 = Charset.forName("UTF-8");
     private CharsetDecoder decoder = utf8.newDecoder();
+    private CharsetEncoder encoder = utf8.newEncoder();
 
     public void runSocketClient() throws IOException {
         Selector selector = Selector.open();
@@ -49,6 +55,8 @@ public class ClientWithSelector {
             Iterator<SelectionKey> it = selector.selectedKeys().iterator();
             while (it.hasNext()) {
                 SelectionKey key = it.next();
+                it.remove();
+
                 if (key.isConnectable()) {
                     log("Connected");
                     // 如果正在连接，则完成连接
@@ -59,14 +67,18 @@ public class ClientWithSelector {
                     // 设置成非阻塞
                     //socketChannel.configureBlocking(false);
                     socketChannel.register(selector, SelectionKey.OP_READ);
-                    readyToSend(socketChannel);
-                    it.remove();
+                    //readyToSend(socketChannel);
+                    loopToSend(socketChannel);
                     continue;
                 }
                 if (key.isReadable()) {
                     log("on read");
-                    read(key);
-                    it.remove();
+                    onRead(key);
+                    continue;
+                }
+
+                if (key.isWritable()) {
+                    log("write");
                     continue;
                 }
             }
@@ -75,7 +87,7 @@ public class ClientWithSelector {
 
     }
 
-    public void read(SelectionKey key) {
+    public void onRead(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         synchronized (syncLocker) {
             try {
@@ -111,17 +123,61 @@ public class ClientWithSelector {
             public void run() {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
                 ByteBuffer buffer = ByteBuffer.allocate(1024);
+                log("\nready to send:");
                 while (true) {
                     try {
                         String s = reader.readLine();
                         byte[] bytes = s.getBytes(utf8);
                         buffer.clear();
-                        buffer.put(bytes);
-                        buffer.flip();
-                        socketChannel.write(buffer);
-                    } catch (IOException e) {
+                        for (int offset = 0; offset < bytes.length; offset++) {
+                            buffer.put(bytes[offset]);
+                            if (buffer.remaining() == 0) {
+                                buffer.flip();
+                                socketChannel.write(buffer);
+                                buffer.clear();
+                            }
+                        }
+
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
+                }
+            }
+        });
+
+    }
+
+    //定时发送数据
+    private void loopToSend(SocketChannel socketChannel) {
+
+        BlockingQueue queue = new ArrayBlockingQueue(3);
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.DAYS, queue);
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+
+                String sendContent = FileUtil.readResourceFile("content.txt",Charset.forName("UTF-8"));
+
+                CharBuffer c = CharBuffer.wrap(sendContent);
+                ByteBuffer buffer = null;
+                try {
+                    buffer = encoder.encode(c);
+                    buffer.mark();
+                } catch (CharacterCodingException e) {
+                    e.printStackTrace();
+                    return;
+                }
+
+                log("\nready to send:");
+                while (true) {
+                    try {
+                        buffer.reset();
+                        socketChannel.write(buffer);
+                        Thread.sleep(5000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                 }
             }
         });

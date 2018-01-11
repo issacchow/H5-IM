@@ -9,6 +9,9 @@ public class Main {
 
 
     public static void main(String ...args){
+//        String s = FileUtil.readResourceFile("content.txt");
+//        ConsoleUtil.log(s);
+//
         Main main = new Main();
         try {
             main.client();

@@ -171,6 +171,7 @@ public class ClientWithSelector {
                 log("\nready to send:");
                 while (true) {
                     try {
+                        log("send");
                         buffer.reset();
                         socketChannel.write(buffer);
                         Thread.sleep(5000);

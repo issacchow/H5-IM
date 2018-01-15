@@ -6,33 +6,52 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 import static cn.isc.util.ConsoleUtil.*;
 
 
 public class NettyClient {
 
 
-    static public void main(String[] args) throws InterruptedException {
+    static public void main(String[] args) throws InterruptedException, IOException {
 
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         Bootstrap client = new Bootstrap();
         MyChannelHandler handler = new MyChannelHandler();
 
-        client.channel(NioSocketChannel.class)
-                .group(eventLoopGroup)
+        client.group(eventLoopGroup)
+                .channel(NioSocketChannel.class)
                 .handler(handler)
                 .remoteAddress(Config.ServerAddress);
 
         log("bind port : 10087");
         ChannelFuture bindFuture = client.bind(10087);
         log("start connect...");
-        ChannelFuture connectFuture = client.connect(Config.ServerAddress);
+        ChannelFuture connectFuture = client.connect(Config.ServerAddress).sync();
         log("connected");
 
-        connectFuture.channel().close().sync();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        boolean exit = false;
+        while (exit == false) {
+            String s = reader.readLine();
+            if ("quit".equals(s)) {
+                connectFuture.channel().close().sync();
+                exit = true;
+                continue;
+            }
+
+            Channel channel = connectFuture.channel();
+            channel.write(s);
+            channel.flush();
+        }
     }
 
 
+    @ChannelHandler.Sharable
     public static class MyChannelHandler extends ChannelInboundHandlerAdapter {
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

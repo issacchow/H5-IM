@@ -2,10 +2,12 @@ package cn.isc.im.channel;
 
 import cn.isc.util.ConsoleUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 
+@ChannelHandler.Sharable
 public class HelloWorldChannel extends ChannelInboundHandlerAdapter {
 
     @Override

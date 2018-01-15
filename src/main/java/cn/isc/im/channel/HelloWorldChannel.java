@@ -1,5 +1,6 @@
 package cn.isc.im.channel;
 
+import cn.isc.util.ConsoleUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -11,6 +12,7 @@ public class HelloWorldChannel extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) { // (2)
         try {
             // Do something with msg
+            ConsoleUtil.log("receive message:%s",msg);
         } finally {
             ReferenceCountUtil.release(msg);
         }

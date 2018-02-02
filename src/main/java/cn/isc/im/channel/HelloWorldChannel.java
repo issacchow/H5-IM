@@ -1,29 +1,61 @@
 package cn.isc.im.channel;
 
-import cn.isc.util.ConsoleUtil;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.ReferenceCountUtil;
+import io.netty.channel.SimpleChannelInboundHandler;
+
+import static cn.isc.util.ConsoleUtil.log;
 
 @ChannelHandler.Sharable
-public class HelloWorldChannel extends ChannelInboundHandlerAdapter {
+public class HelloWorldChannel extends SimpleChannelInboundHandler<Byte[]> {
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) { // (2)
-        try {
-            // Do something with msg
-            ConsoleUtil.log("receive message:%s",msg);
-        } finally {
-            ReferenceCountUtil.release(msg);
-        }
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log("exceptionCaught");
+        super.exceptionCaught(ctx, cause);
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) { // (4)
-        // Close the connection when an exception is raised.
-        cause.printStackTrace();
-        ctx.close();
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        log("channelReadComplete");
+        super.channelReadComplete(ctx);
     }
+
+    @Override
+    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        log("channelRegistered");
+        super.channelRegistered(ctx);
+    }
+
+    @Override
+    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        log("channelUnregistered");
+        super.channelUnregistered(ctx);
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        log("channelActive");
+        super.channelActive(ctx);
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        log("channelInactive");
+        super.channelInactive(ctx);
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        log("channelRead");
+        super.channelRead(ctx, msg);
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, Byte[] msg) throws Exception {
+        log("channelRead0");
+        super.channelRead(ctx, msg);
+    }
+
+
 }

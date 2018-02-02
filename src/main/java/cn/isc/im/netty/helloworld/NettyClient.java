@@ -9,6 +9,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import static cn.isc.util.ConsoleUtil.*;
 
@@ -35,6 +37,10 @@ public class NettyClient {
 
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        Charset charset = Charset.forName("UTF-8");
+        int offset = 0;
+        int length = 0;
         boolean exit = false;
         while (exit == false) {
             String s = reader.readLine();
@@ -44,9 +50,14 @@ public class NettyClient {
                 continue;
             }
 
+            //发送字节
+            byte[] bytes = s.getBytes(charset);
+
+            ByteBuffer xx = ByteBuffer.wrap(bytes);
+
+
             Channel channel = connectFuture.channel();
-            channel.write(s);
-            channel.flush();
+            channel.writeAndFlush(xx);
         }
     }
 
